@@ -1,8 +1,12 @@
 package com.coruja.ocorrencias.service.validation;
 
 
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.imageio.ImageIO;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,6 +41,17 @@ public class validaFormatoFoto implements SalvaFotoInterface {
             if (!ext.equals("jpg") && !ext.equals("jpeg") && !ext.equals("png")) {
                 throw new BusinessException("Apenas arquivos JPG e PNG sao permitidos");
             }
+
+            try {
+                BufferedImage imagem = ImageIO.read(fotos.getInputStream());
+
+                if (imagem == null) {
+                    throw new BusinessException("Arquivo enviado nao e uma imagem valida");
+                }
+            } catch (IOException error) {
+                throw new BusinessException("Nao foi possivel validar a imagem enviada");
+            }
+
             nomesFotos.add(nome);
         }
         return nomesFotos;

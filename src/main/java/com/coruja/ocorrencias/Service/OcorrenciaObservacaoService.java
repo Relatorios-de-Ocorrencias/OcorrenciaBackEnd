@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.coruja.ocorrencias.dto.request.ObservacoesRequestDTO;
+import com.coruja.ocorrencias.dto.request.ObservacoesUpdateRequestDTO;
 import com.coruja.ocorrencias.dto.response.ObservacoesResponseDTO;
 import com.coruja.ocorrencias.entity.FotoOcorrenciaEntity;
 import com.coruja.ocorrencias.entity.OcorrenciaEntity;
@@ -75,23 +76,30 @@ public class OcorrenciaObservacaoService {
         return observacoesMapper.toDto(observacao);
     }
 
-    public ObservacoesResponseDTO atualizaPorId (Long id, ObservacoesRequestDTO dto){
+    public ObservacoesResponseDTO atualizaPorId (Long id, ObservacoesUpdateRequestDTO dto){
 
         ObservacaoOcorrenciaEntity observacao = observacaoRepository.findById(id).orElseThrow(() -> new NotFoundException("Observacao nao encontrada"));
 
         observacao.setTitulo(dto.getTitulo());
         observacao.setDescricao(dto.getDescricao());
 
-        validaFormatoFoto.salvarFoto(dto);
+        if (dto.getImagens() != null && !dto.getImagens().isEmpty()) {
+            ObservacoesRequestDTO dtoComFotos = new ObservacoesRequestDTO();
+            dtoComFotos.setTitulo(dto.getTitulo());
+            dtoComFotos.setDescricao(dto.getDescricao());
+            dtoComFotos.setImagens(dto.getImagens());
 
-        List<String> caminhosFotos = fotoStorageService.salvarFoto(dto);
+            validaFormatoFoto.salvarFoto(dtoComFotos);
 
-        for (String caminhoFoto : caminhosFotos) {
-        FotoOcorrenciaEntity foto = new FotoOcorrenciaEntity();
-        foto.setUrlFoto(caminhoFoto);
-        foto.setObservacao(observacao);
-        observacao.getFotos().add(foto);
-    }
+            List<String> caminhosFotos = fotoStorageService.salvarFoto(dtoComFotos);
+
+            for (String caminhoFoto : caminhosFotos) {
+                FotoOcorrenciaEntity foto = new FotoOcorrenciaEntity();
+                foto.setUrlFoto(caminhoFoto);
+                foto.setObservacao(observacao);
+                observacao.getFotos().add(foto);
+            }
+        }
         ObservacaoOcorrenciaEntity observacaoSalva = observacaoRepository.save(observacao);
 
     return observacoesMapper.toDto(observacaoSalva);

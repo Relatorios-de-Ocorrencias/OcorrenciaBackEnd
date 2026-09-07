@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.coruja.ocorrencias.dto.request.ObservacoesRequestDTO;
+import com.coruja.ocorrencias.dto.request.ObservacoesUpdateRequestDTO;
 import com.coruja.ocorrencias.dto.response.ObservacoesResponseDTO;
 import com.coruja.ocorrencias.service.OcorrenciaObservacaoService;
 
@@ -51,7 +52,7 @@ public class ObservacaoController {
 
     @PutMapping("{id}")
     public ResponseEntity<ObservacoesResponseDTO> atualizaPorId(@PathVariable Long id,
-            @Valid @ModelAttribute ObservacoesRequestDTO dto) {
+            @Valid @ModelAttribute ObservacoesUpdateRequestDTO dto) {
 
         ObservacoesResponseDTO observacoes = service.atualizaPorId(id, dto);
 
