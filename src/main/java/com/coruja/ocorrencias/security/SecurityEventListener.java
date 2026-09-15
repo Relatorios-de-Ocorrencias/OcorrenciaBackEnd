@@ -7,6 +7,7 @@ public class SecurityEventListener {
 @EventListener  
 public void loginSucces(AuthenticationSuccessEvent event){
     log.warn
+    
 }
 
 }
