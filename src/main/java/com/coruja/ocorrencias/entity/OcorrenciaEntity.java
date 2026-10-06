@@ -16,10 +16,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import com.coruja.ocorrencias.entity.usuarios.Usuario;
+
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
 /**
  * Entidade principal de ocorrencia.
- * Representa no banco os dados gerais do relatorio e o relacionamento com observacoes.
+ * Representa no banco os dados gerais do relatorio e o relacionamento com
+ * observacoes.
  */
 @Entity(name = "relatorioocorrencia")
 public class OcorrenciaEntity {
@@ -67,6 +73,18 @@ public class OcorrenciaEntity {
     @PreUpdate
     public void preUpdate() {
         atualizadoEm = LocalDateTime.now();
+    }
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 
     public Long getId() {
