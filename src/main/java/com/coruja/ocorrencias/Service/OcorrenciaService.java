@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.coruja.ocorrencias.dto.request.OcorrenciaRequestDTO;
 import com.coruja.ocorrencias.dto.response.OcorrenciaResponseDTO;
 import com.coruja.ocorrencias.entity.OcorrenciaEntity;
+import com.coruja.ocorrencias.entity.StatusOcorrenciaEntity;
 import com.coruja.ocorrencias.entity.usuarios.Role;
 import com.coruja.ocorrencias.entity.usuarios.Usuario;
 import com.coruja.ocorrencias.mapper.OcorrenciaMapper;
@@ -83,6 +84,25 @@ public class OcorrenciaService {
         OcorrenciaEntity ocorrenciaSalva = repository.save(ocorrencia);
 
         return ocorrenciaMapper.toDto(ocorrenciaSalva);
+    }
+
+    @Transactional
+    public OcorrenciaResponseDTO fechar(Long id) {
+        OcorrenciaEntity ocorrencia = acesso.buscarPermitida(id);
+        ocorrencia.setStatus(StatusOcorrenciaEntity.FINALIZADA);
+        return ocorrenciaMapper.toDto(repository.save(ocorrencia));
+    }
+
+    @Transactional
+    public OcorrenciaResponseDTO reabrir(Long id) {
+        OcorrenciaEntity ocorrencia = acesso.buscarPermitida(id);
+        ocorrencia.setStatus(StatusOcorrenciaEntity.DRAFT);
+        return ocorrenciaMapper.toDto(repository.save(ocorrencia));
+    }
+
+    @Transactional
+    public void excluir(Long id) {
+        repository.delete(acesso.buscarPermitida(id));
     }
 
     public List<OcorrenciaResponseDTO> buscarUltimasTresOcorrencias() {

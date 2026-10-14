@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -34,8 +35,7 @@ public class OcorrenciaController {
             @Valid @RequestBody OcorrenciaRequestDTO dto,
             @AuthenticationPrincipal UsuarioDetails usuarioLogado) {
 
-        OcorrenciaResponseDTO response =
-                service.salvar(dto, usuarioLogado.getId());
+        OcorrenciaResponseDTO response = service.salvar(dto, usuarioLogado.getId());
 
         return ResponseEntity.status(201).body(response);
     }
@@ -52,20 +52,44 @@ public class OcorrenciaController {
     @PutMapping("/{id}")
     public ResponseEntity<OcorrenciaResponseDTO> atualizaPorId(
             @PathVariable Long id,
-            @RequestBody OcorrenciaRequestDTO dto) {
+            @Valid @RequestBody OcorrenciaRequestDTO dto) {
 
         OcorrenciaResponseDTO response = service.atualizaPorId(id, dto);
 
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/buscarUltimasTresOcorrencia")
-    public ResponseEntity<List<OcorrenciaResponseDTO>>
-            buscarUltimasTresOcorrencias() {
+    @PostMapping("/{id}/fechar")
+    public ResponseEntity<OcorrenciaResponseDTO> fechar(@PathVariable Long id) {
+        return ResponseEntity.ok(service.fechar(id));
+    }
 
-        List<OcorrenciaResponseDTO> response =
-                service.buscarUltimasTresOcorrencias();
+    @PostMapping("/{id}/reabrir")
+    public ResponseEntity<OcorrenciaResponseDTO> reabrir(@PathVariable Long id) {
+        return ResponseEntity.ok(service.reabrir(id));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+        service.excluir(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/buscarUltimasTresOcorrencia")
+    public ResponseEntity<List<OcorrenciaResponseDTO>> buscarUltimasTresOcorrencias() {
+
+        List<OcorrenciaResponseDTO> response = service.buscarUltimasTresOcorrencias();
 
         return ResponseEntity.ok(response);
     }
+
 }
+
+    
+    
+        
+        
+    
+
+    
+      

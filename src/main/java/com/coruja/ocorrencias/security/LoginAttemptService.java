@@ -6,11 +6,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
+import org.springframework.security.authentication.LockedException;
 
 @Service
 public class LoginAttemptService {
 
     private static final int LIMITE_FALHAS = 10;
+    private static final int LIMITE_REGISTROS = 10_000;
     private static final Duration JANELA = Duration.ofMinutes(10);
     private static final Duration BLOQUEIO = Duration.ofMinutes(10);
 
@@ -30,6 +32,10 @@ public class LoginAttemptService {
     public synchronized void registrarFalha(String email) {
         Instant agora = Instant.now();
         removerExpirados(agora);
+
+        if (!registros.containsKey(email) && registros.size() >= LIMITE_REGISTROS) {
+            throw new LockedException("Autenticacao temporariamente indisponivel");
+        }
 
         Tentativas registro = registros.computeIfAbsent(
                 email,
