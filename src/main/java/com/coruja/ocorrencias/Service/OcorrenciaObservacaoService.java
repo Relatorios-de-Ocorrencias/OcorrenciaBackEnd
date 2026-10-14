@@ -3,6 +3,7 @@ package com.coruja.ocorrencias.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.coruja.ocorrencias.dto.request.ObservacoesRequestDTO;
 import com.coruja.ocorrencias.dto.request.ObservacoesUpdateRequestDTO;
@@ -12,109 +13,139 @@ import com.coruja.ocorrencias.entity.OcorrenciaEntity;
 import com.coruja.ocorrencias.entity.ObservacaoOcorrenciaEntity;
 import com.coruja.ocorrencias.exception.NotFoundException;
 import com.coruja.ocorrencias.mapper.ObservacaoMapper;
-import com.coruja.ocorrencias.mapper.OcorrenciaMapper;
 import com.coruja.ocorrencias.repository.ObservacaoRepository;
-import com.coruja.ocorrencias.repository.OcorrenciaRepository;
+import com.coruja.ocorrencias.security.AcessoOcorrenciaService;
 import com.coruja.ocorrencias.service.validation.validaFormatoFoto;
 import com.coruja.ocorrencias.service.validation.storage.FotoStorageService;
 
-/**
- * Service de observacoes da ocorrencia.
- * Centraliza as regras para criar, buscar e atualizar observacoes, validando e salvando fotos.
- */
 @Service
+@Transactional(readOnly = true)
 public class OcorrenciaObservacaoService {
 
-    private final ObservacaoMapper observacoesMapper;
-    private final ObservacaoRepository observacaoRepository;
-    private final OcorrenciaRepository ocorrenciaRepository;
-    private final validaFormatoFoto validaFormatoFoto;
-    private final FotoStorageService fotoStorageService;
-    private final OcorrenciaRepository repository;
+    private final ObservacaoMapper mapper;
+    private final ObservacaoRepository repository;
+    private final AcessoOcorrenciaService acesso;
+    private final validaFormatoFoto validador;
+    private final FotoStorageService armazenamento;
 
-    public OcorrenciaObservacaoService(ObservacaoMapper observacoesMapper, ObservacaoRepository observacaoRepository,
-            OcorrenciaRepository ocorrenciaRepository,
-            com.coruja.ocorrencias.service.validation.validaFormatoFoto validaFormatoFoto,
-            FotoStorageService fotoStorageService, OcorrenciaRepository repository, OcorrenciaMapper ocorrenciaMapper) {
-        this.observacoesMapper = observacoesMapper;
-        this.observacaoRepository = observacaoRepository;
-        this.ocorrenciaRepository = ocorrenciaRepository;
-        this.validaFormatoFoto = validaFormatoFoto;
-        this.fotoStorageService = fotoStorageService;
+    public OcorrenciaObservacaoService(
+            ObservacaoMapper mapper,
+            ObservacaoRepository repository,
+            AcessoOcorrenciaService acesso,
+            validaFormatoFoto validador,
+            FotoStorageService armazenamento) {
+
+        this.mapper = mapper;
         this.repository = repository;
+        this.acesso = acesso;
+        this.validador = validador;
+        this.armazenamento = armazenamento;
     }
 
-    public ObservacoesResponseDTO salvar(Long ocorrenciaId, ObservacoesRequestDTO dto) {
+    @Transactional
+    public ObservacoesResponseDTO salvar(
+            Long ocorrenciaId,
+            ObservacoesRequestDTO dto) {
 
-        OcorrenciaEntity ocorrencia = ocorrenciaRepository.findById(ocorrenciaId)
-                .orElseThrow(() -> new NotFoundException("Ocorrencia nao encontrada"));
+        OcorrenciaEntity ocorrencia =
+                acesso.buscarPermitida(ocorrenciaId);
 
-        validaFormatoFoto.salvarFoto(dto);
+        acesso.exigirEdicaoPermitida(ocorrencia);
 
-        ObservacaoOcorrenciaEntity observacao = observacoesMapper.toEntity(dto);
+        ObservacaoOcorrenciaEntity observacao = mapper.toEntity(dto);
         observacao.setOcorrencia(ocorrencia);
 
-        List<String> caminhosFotos = fotoStorageService.salvarFoto(dto);
+        adicionarFotos(observacao, dto);
 
-        for (String caminhoFoto : caminhosFotos) {
-            FotoOcorrenciaEntity foto = new FotoOcorrenciaEntity();
-            foto.setUrlFoto(caminhoFoto);
-            foto.setObservacao(observacao);
-            observacao.getFotos().add(foto);
-        }
-
-        ObservacaoOcorrenciaEntity observacaoSalva = observacaoRepository.save(observacao);
-
-        return observacoesMapper.toDto(observacaoSalva);
+        return mapper.toDto(repository.save(observacao));
     }
 
-    public ObservacoesResponseDTO buscarPorId(Long id) {
+    public ObservacoesResponseDTO buscarPorId(
+            Long ocorrenciaId,
+            Long observacaoId) {
 
-        ObservacaoOcorrenciaEntity observacao = observacaoRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Ocorrencia nao encontrada"));
+        acesso.buscarPermitida(ocorrenciaId);
 
-        return observacoesMapper.toDto(observacao);
+        ObservacaoOcorrenciaEntity observacao =
+                buscarObservacao(ocorrenciaId, observacaoId);
+
+        return mapper.toDto(observacao);
     }
 
-    public ObservacoesResponseDTO atualizaPorId (Long id, ObservacoesUpdateRequestDTO dto){
+    @Transactional
+    public ObservacoesResponseDTO atualizaPorId(
+            Long ocorrenciaId,
+            Long observacaoId,
+            ObservacoesUpdateRequestDTO dto) {
 
-        ObservacaoOcorrenciaEntity observacao = observacaoRepository.findById(id).orElseThrow(() -> new NotFoundException("Observacao nao encontrada"));
+        OcorrenciaEntity ocorrencia =
+                acesso.buscarPermitida(ocorrenciaId);
+
+        acesso.exigirEdicaoPermitida(ocorrencia);
+
+        ObservacaoOcorrenciaEntity observacao =
+                buscarObservacao(ocorrenciaId, observacaoId);
 
         observacao.setTitulo(dto.getTitulo());
         observacao.setDescricao(dto.getDescricao());
 
-        if (dto.getImagens() != null && !dto.getImagens().isEmpty()) {
-            ObservacoesRequestDTO dtoComFotos = new ObservacoesRequestDTO();
-            dtoComFotos.setTitulo(dto.getTitulo());
-            dtoComFotos.setDescricao(dto.getDescricao());
-            dtoComFotos.setImagens(dto.getImagens());
+        ObservacoesRequestDTO fotos = new ObservacoesRequestDTO();
+        fotos.setImagens(dto.getImagens());
 
-            validaFormatoFoto.salvarFoto(dtoComFotos);
+        adicionarFotos(observacao, fotos);
 
-            List<String> caminhosFotos = fotoStorageService.salvarFoto(dtoComFotos);
-
-            for (String caminhoFoto : caminhosFotos) {
-                FotoOcorrenciaEntity foto = new FotoOcorrenciaEntity();
-                foto.setUrlFoto(caminhoFoto);
-                foto.setObservacao(observacao);
-                observacao.getFotos().add(foto);
-            }
-        }
-        ObservacaoOcorrenciaEntity observacaoSalva = observacaoRepository.save(observacao);
-
-    return observacoesMapper.toDto(observacaoSalva);
-
+        return mapper.toDto(repository.save(observacao));
     }
 
-    public List<ObservacoesResponseDTO> listarPorOcorrencia(Long ocorrenciaId) {
-        ocorrenciaRepository.findById(ocorrenciaId)
-            .orElseThrow(() -> new NotFoundException("Ocorrencia nao encontrada"));
+    public List<ObservacoesResponseDTO> listarPorOcorrencia(
+            Long ocorrenciaId) {
 
-        return observacaoRepository.findByOcorrencia_Id(ocorrenciaId)
+        acesso.buscarPermitida(ocorrenciaId);
+
+        return repository.findByOcorrencia_Id(ocorrenciaId)
                 .stream()
-                .map(observacoesMapper::toDto)
+                .map(mapper::toDto)
                 .toList();
     }
+
+    private ObservacaoOcorrenciaEntity buscarObservacao(
+            Long ocorrenciaId,
+            Long observacaoId) {
+
+        ObservacaoOcorrenciaEntity observacao =
+                repository.findById(observacaoId)
+                        .orElseThrow(() ->
+                                new NotFoundException(
+                                        "Observacao nao encontrada"));
+
+        if (!observacao.getOcorrencia().getId()
+                .equals(ocorrenciaId)) {
+
+            throw new NotFoundException("Observacao nao encontrada");
+        }
+
+        return observacao;
+    }
+
+    private void adicionarFotos(
+            ObservacaoOcorrenciaEntity observacao,
+            ObservacoesRequestDTO dto) {
+
+        if (dto.getImagens() == null || dto.getImagens().isEmpty()) {
+            return;
+        }
+
+        validador.salvarFoto(dto);
+
+        List<String> caminhos = armazenamento.salvarFoto(dto);
+
+        for (String caminho : caminhos) {
+            FotoOcorrenciaEntity foto = new FotoOcorrenciaEntity();
+
+            foto.setUrlFoto(caminho);
+            foto.setObservacao(observacao);
+
+            observacao.getFotos().add(foto);
+        }
+    }
 }
-
-

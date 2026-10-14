@@ -8,6 +8,7 @@ import com.coruja.ocorrencias.exception.BusinessException;
 import com.coruja.ocorrencias.exception.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 
 /**
  * Tratador global de erros da API.
@@ -26,6 +27,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<String> handleNotFound(NotFoundException ex) {
         return ResponseEntity.status(404).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<String> handleAccessDenied(
+            AccessDeniedException ex) {
+
+        return ResponseEntity.status(403)
+                .body("Acesso negado");
     }
 
     @ExceptionHandler(Exception.class)

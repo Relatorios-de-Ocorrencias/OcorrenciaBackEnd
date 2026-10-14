@@ -3,6 +3,7 @@ package com.coruja.ocorrencias.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,13 +17,7 @@ import com.coruja.ocorrencias.dto.response.ObservacoesResponseDTO;
 import com.coruja.ocorrencias.service.OcorrenciaObservacaoService;
 
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.GetMapping;
 
-/**
- * Controller REST das observacoes de uma ocorrencia.
- * Expoe endpoints para criar, buscar e atualizar observacoes vinculadas a uma
- * ocorrencia.
- */
 @RestController
 @RequestMapping("/ocorrencias/{ocorrenciaId}/observacoes")
 public class ObservacaoController {
@@ -34,37 +29,39 @@ public class ObservacaoController {
     }
 
     @PostMapping
-    public ResponseEntity<ObservacoesResponseDTO> salvar(@PathVariable Long ocorrenciaId,
+    public ResponseEntity<ObservacoesResponseDTO> salvar(
+            @PathVariable Long ocorrenciaId,
             @Valid @ModelAttribute ObservacoesRequestDTO dto) {
 
-        ObservacoesResponseDTO response = service.salvar(ocorrenciaId, dto);
-
-        return ResponseEntity.status(201).body(response);
+        return ResponseEntity.status(201)
+                .body(service.salvar(ocorrenciaId, dto));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ObservacoesResponseDTO> buscaPorId(@PathVariable Long id) {
+    public ResponseEntity<ObservacoesResponseDTO> buscaPorId(
+            @PathVariable Long ocorrenciaId,
+            @PathVariable Long id) {
 
-        ObservacoesResponseDTO observacoes = service.buscarPorId(id);
-
-        return ResponseEntity.ok(observacoes);
+        return ResponseEntity.ok(
+                service.buscarPorId(ocorrenciaId, id));
     }
 
-    @PutMapping("{id}")
-    public ResponseEntity<ObservacoesResponseDTO> atualizaPorId(@PathVariable Long id,
+    @PutMapping("/{id}")
+    public ResponseEntity<ObservacoesResponseDTO> atualizaPorId(
+            @PathVariable Long ocorrenciaId,
+            @PathVariable Long id,
             @Valid @ModelAttribute ObservacoesUpdateRequestDTO dto) {
 
-        ObservacoesResponseDTO observacoes = service.atualizaPorId(id, dto);
-
-        return ResponseEntity.ok(observacoes);
-
+        return ResponseEntity.ok(
+                service.atualizaPorId(ocorrenciaId, id, dto));
     }
 
     @GetMapping
-    public ResponseEntity<List<ObservacoesResponseDTO>> listarPorOcorrencia(
-            @PathVariable Long ocorrenciaId) {
-        List<ObservacoesResponseDTO> response = service.listarPorOcorrencia(ocorrenciaId);
+    public ResponseEntity<List<ObservacoesResponseDTO>>
+            listarPorOcorrencia(
+                    @PathVariable Long ocorrenciaId) {
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                service.listarPorOcorrencia(ocorrenciaId));
     }
 }
